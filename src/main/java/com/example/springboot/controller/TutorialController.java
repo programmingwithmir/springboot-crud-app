@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,7 +35,7 @@ public class TutorialController {
 
 		try {
 			Tutorial _tutorial = tutorialRepository
-					.save(new Tutorial(tutorial.getTitle(), tutorial.getDescription(), false));
+					.save(new Tutorial(tutorial.getTitle(), tutorial.getDescription(), tutorial.isPublished()));
 			return new ResponseEntity<>(_tutorial, HttpStatus.CREATED);
 
 		} catch (Exception e) {
@@ -51,8 +52,18 @@ public class TutorialController {
 		} catch (Exception e) {
 			return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-
 	}
+	
+	@GetMapping("/tutorials/published")
+	public ResponseEntity<List<Tutorial>> findByPublished() {
+		try {
+			List<Tutorial> list = tutorialRepository.findByPublished(true);
+			return new ResponseEntity<>(list, HttpStatus.OK);
+		} catch (Exception e) {
+			return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+	
 
 	@GetMapping("/tutorials/{id}")
 	public ResponseEntity<Tutorial> getTutorialById(@PathVariable long id) throws TutorialNotFoundException {
@@ -65,6 +76,22 @@ public class TutorialController {
 			throw new TutorialNotFoundException("Tutorial with this ID doesn't exist");
 		}
 	}
+	
+	@PutMapping("/tutorials/{id}")
+	public ResponseEntity<Tutorial> updateTutorial(@PathVariable long id, @RequestBody Tutorial tutorial) throws TutorialNotFoundException {
+		Optional<Tutorial> tutorialData = tutorialRepository.findById(id);
+		if (tutorialData.isPresent()) {
+			Tutorial _tutorial = tutorialData.get();
+			_tutorial.setTitle(tutorial.getTitle());
+			_tutorial.setDescription(tutorial.getDescription());
+			_tutorial.setPublished(tutorial.isPublished());
+			return new ResponseEntity<Tutorial>(tutorialRepository.save(_tutorial),HttpStatus.OK);
+		}
+		else {
+			throw new TutorialNotFoundException("Tutorial with this ID : "+id+" doesn't exist");
+		}
+		
+	}
 
 	@DeleteMapping("/tutorials/{id}")
 	public ResponseEntity<HttpStatus> deleteTutorial(@PathVariable long id) {
@@ -75,6 +102,16 @@ public class TutorialController {
 			return new ResponseEntity<HttpStatus>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
+	}
+	
+	@DeleteMapping("/tutorials")
+	public ResponseEntity<HttpStatus> deleteAllTutorials() {
+		try {
+			tutorialRepository.deleteAll();
+			return new ResponseEntity<HttpStatus>(HttpStatus.OK);
+		} catch (Exception e) {
+			return new ResponseEntity<HttpStatus>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }
